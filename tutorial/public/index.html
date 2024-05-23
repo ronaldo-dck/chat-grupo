@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <!-- <meta http-equiv="Content-Security-Policy" content="connect-src * 'unsafe-inline'; font-src 'self' data:;"> -->
+  <title>Chat Grupo</title>
+</head>
+
+<body>
+  <h1>Chat Grupo</h1>
+  <input placeholder="username" type="text" id="nomeUser">
+  <button onclick="conectar()">Conectar</button>
+  <button onclick="criarSala()">Criar Sala</button>
+  <button onclick="listarSalas()">Listar Salas</button>
+  <button onclick="entrarSala()">Entrar na Sala</button>
+  <br>
+  <input type="text" id="nomeSala">
+  <script src="index.js"></script>
+  <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.0.0/crypto-js.min.js"></script> -->
+  <!-- <script src="/crypto"></script> -->
+  <script src="/socket.io/socket.io.js"></script>
+</body>
+
+</html>
