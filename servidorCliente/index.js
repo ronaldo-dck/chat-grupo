@@ -1,9 +1,22 @@
-import { createHash } from 'crypto';
-import express from 'express'
+const crypto = require('crypto');
+const express = require('express');
+const path = require('path');
+const { Server } = require('socket.io');
+
+const app = express();
+const PORT = 4000;
 
 class ChatClient {
     constructor(username) {
-        this.client = express();
+        this.server = app.listen(PORT, () => {
+            console.log(`client server on port ${PORT}`);
+        })
+        this.client = Server(server);
+
+        this.client.on('connection', (socket) => {
+            console.log(socket.id);
+        })
+
         this.username = username;
         this.client.on('data', (data) => {
             console.log(`Servidor [${this.username}]:`, data.toString().trim());
@@ -63,9 +76,6 @@ class ChatClient {
         this.client.end();
     }
 }
-
-let client = new ChatClient('usuario1');
-client.connect()
 
 function conectar() {
     const nome = document.getElementById('nomeUser').value;
