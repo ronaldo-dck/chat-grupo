@@ -57,9 +57,9 @@ class ChatClient {
     }
 
     sendMessage(message) {
-        this.client.write(`${message}\n`);
+        // this.client.write(`${message}\n`);
         console.log(message);
-        // this.client.emit(`${message}\n`);
+        this.client.emit(`${message}\n`);
     }
 
     close() {

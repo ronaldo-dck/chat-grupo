@@ -29,7 +29,7 @@ function onConnected(socket) {
     if (commandHandler[command]) {
       commandHandler[command](params);
     } else {
-      socket.write(`ERRO Comando desconhecido: ${command}\n`);
+      socket.emit(`ERRO Comando desconhecido: ${command}\n`);
     }
   });
 
@@ -41,7 +41,7 @@ function onConnected(socket) {
         if (room.clients.includes(username)) {
           room.clients = room.clients.filter(clientName => clientName !== username);
           room.clients.forEach(clientName => {
-            clients[clientName].write(`SAIU ${roomName} ${username}\n`);
+            clients[clientName].emit(`SAIU ${roomName} ${username}\n`);
           });
         }
       }
@@ -58,31 +58,31 @@ class CommandHandler {
   REGISTRO(params) {
     const username = params[0];
     if (clients[username]) {
-      this.socket.write('ERRO Usuario ja existe\n');
+      this.socket.emit('ERRO Usuario ja existe\n');
     } else {
       this.username = username;
       clients[username] = this.socket;
-      this.socket.write('REGISTRO_OK\n');
+      this.socket.emit('REGISTRO_OK\n');
     }
   }
 
   CRIAR_SALA(params) {
     const [roomType, roomName, roomPassword] = params;
     if (rooms[roomName]) {
-      this.socket.write('ERRO Sala ja existe\n');
+      this.socket.emit('ERRO Sala ja existe\n');
     } else {
       rooms[roomName] = {
         admin: this.username,
         clients: [this.username],
         password: roomType === 'PRIVADA' ? crypto.createHash('sha256').update(roomPassword).digest('hex') : null
       };
-      this.socket.write('CRIAR_SALA_OK\n');
+      this.socket.emit('CRIAR_SALA_OK\n');
     }
   }
 
   LISTAR_SALAS() {
     const roomList = Object.keys(rooms).join(' ');
-    this.socket.write(`SALAS ${roomList}\n`);
+    this.socket.emit(`SALAS ${roomList}\n`);
   }
 
   ENTRAR_SALA(params) {
@@ -90,18 +90,18 @@ class CommandHandler {
     const room = rooms[roomToJoin];
     if (room) {
       if (room.password && room.password !== crypto.createHash('sha256').update(roomPasswordToJoin).digest('hex')) {
-        this.socket.write('ERRO Senha incorreta\n');
+        this.socket.emit('ERRO Senha incorreta\n');
       } else {
         room.clients.push(this.username);
-        this.socket.write(`ENTRAR_SALA_OK ${room.clients.join(' ')}\n`);
+        this.socket.emit(`ENTRAR_SALA_OK ${room.clients.join(' ')}\n`);
         room.clients.forEach(clientName => {
           if (clientName !== this.username) {
-            clients[clientName].write(`ENTROU ${roomToJoin} ${this.username}\n`);
+            clients[clientName].emit(`ENTROU ${roomToJoin} ${this.username}\n`);
           }
         });
       }
     } else {
-      this.socket.write('ERRO Sala nao existe\n');
+      this.socket.emit('ERRO Sala nao existe\n');
     }
   }
 
@@ -111,11 +111,11 @@ class CommandHandler {
     if (rooms[targetRoom]) {
       rooms[targetRoom].clients.forEach(clientName => {
         if (clientName !== this.username) {
-          clients[clientName].write(`MENSAGEM ${targetRoom} ${this.username} ${fullMessage}\n`);
+          clients[clientName].emit(`MENSAGEM ${targetRoom} ${this.username} ${fullMessage}\n`);
         }
       });
     } else {
-      this.socket.write('ERRO Sala nao existe\n');
+      this.socket.emit('ERRO Sala nao existe\n');
     }
   }
 
@@ -123,12 +123,12 @@ class CommandHandler {
     const roomToLeave = params[0];
     if (rooms[roomToLeave]) {
       rooms[roomToLeave].clients = rooms[roomToLeave].clients.filter(clientName => clientName !== this.username);
-      this.socket.write('SAIR_SALA_OK\n');
+      this.socket.emit('SAIR_SALA_OK\n');
       rooms[roomToLeave].clients.forEach(clientName => {
-        clients[clientName].write(`SAIU ${roomToLeave} ${this.username}\n`);
+        clients[clientName].emit(`SAIU ${roomToLeave} ${this.username}\n`);
       });
     } else {
-      this.socket.write('ERRO Sala nao existe\n');
+      this.socket.emit('ERRO Sala nao existe\n');
     }
   }
 }
