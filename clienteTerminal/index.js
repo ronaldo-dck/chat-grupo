@@ -1,9 +1,10 @@
 import { Socket } from 'net';
 import { createHash } from 'crypto';
+import express from 'express'
 
 class ChatClient {
     constructor(username) {
-        this.client = new Socket();
+        this.client = express();
         this.username = username;
         this.client.on('data', (data) => {
             console.log(`Servidor [${this.username}]:`, data.toString().trim());
@@ -64,7 +65,8 @@ class ChatClient {
     }
 }
 
-let client
+let client = new ChatClient('usuario1');
+client.connect()
 
 function conectar() {
     const nome = document.getElementById('nomeUser').value;
