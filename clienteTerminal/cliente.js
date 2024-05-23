@@ -18,7 +18,7 @@ class ChatClient {
         });
     }
 
-    connect(host = '127.0.0.1', port = 9999) {
+    async connect(host = '127.0.0.1', port = 9999) {
         this.client.connect(port, host, () => {
             console.log(`Conectado ao servidor [${this.username}]`);
             this.register(this.username);

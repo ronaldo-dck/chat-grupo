@@ -1,46 +1,55 @@
 const ChatClient = require('./cliente');
 const prompt = require('prompt-sync')();
-const readline = require('readline');
-const cmd = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
 
-let username = prompt('Insira seu nome de usuário: ')
-const client = new ChatClient(username);
-client.connect();
+async function main() {
+    // Cliente 1
+    const client1 = new ChatClient('usuario1');
+    await client1.connect();
 
-function menu() {
-    console.log('0 - Fechar')
-    console.log('1 - Criar uma sala')
-    console.log('2 - Listar as salas')
-    console.log('3 - Entrar numa sala')
-    return prompt('>> ')
-}
-
-while (true) {
-    switch (menu()) {
-        case '0':
-            client.close()
-            process.exit()
-        case '1':
-            let nome = prompt('Insira o nome da sala')
-            let privado = prompt('Privado? (s/n)') === 's' ? true : false
-            let senha = privado ? prompt('Insira a senha') : ''
-
-            client.createRoom(nome, privado, senha)
-            break
-        case '2':
-            client.listRooms()
-            break
-        case '3':
-            client.joinRoom()
-            break
-        default:
-            console.log('Opcão inválida')
+    let username = prompt('Insira seu nome de usuário: ')
+    const client = new ChatClient(username);
+    try {
+        console.log('Conectando ao servidor...');
+        await client.connect();
+        console.log('Conectado ao servidor!');
+    } catch (err) {
+        console.log(err);
     }
+
+    function menu() {
+        console.log('0 - Fechar')
+        console.log('1 - Criar uma sala')
+        console.log('2 - Listar as salas')
+        console.log('3 - Entrar numa sala')
+        return prompt('>> ')
+    }
+
+    console.log('oi');
+    // while (true) {
+    //     switch (menu()) {
+    //         case '0':
+    //             process.exit()
+    //             break
+    //         case '1':
+    //             let nome = prompt('Insira o nome da sala')
+    //             let privado = prompt('Privado? (s/n)') === 's' ? true : false
+    //             let senha = privado ? prompt('Insira a senha') : ''
+
+    //             client.createRoom(nome, privado, senha)
+    //             break
+    //         case '2':
+    //             client.listRooms()
+    //             break
+    //         case '3':
+    //             client.joinRoom()
+    //             break
+    //         default:
+    //             console.log('Opcão inválida')
+    //     }
+    // }
 }
 
+main()
 
 // setTimeout(() => client1.createRoom('sala1', true, '12345'), 1000);
 // setTimeout(() => client1.listRooms(), 2000);
