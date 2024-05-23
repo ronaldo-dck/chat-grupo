@@ -25,28 +25,28 @@ async function main() {
     }
 
     console.log('oi');
-    // while (true) {
-    //     switch (menu()) {
-    //         case '0':
-    //             process.exit()
-    //             break
-    //         case '1':
-    //             let nome = prompt('Insira o nome da sala')
-    //             let privado = prompt('Privado? (s/n)') === 's' ? true : false
-    //             let senha = privado ? prompt('Insira a senha') : ''
+    while (true) {
+        switch (menu()) {
+            case '0':
+                process.exit()
+                break
+            case '1':
+                let nome = prompt('Insira o nome da sala')
+                let privado = prompt('Privado? (s/n)') === 's' ? true : false
+                let senha = privado ? prompt('Insira a senha') : ''
 
-    //             client.createRoom(nome, privado, senha)
-    //             break
-    //         case '2':
-    //             client.listRooms()
-    //             break
-    //         case '3':
-    //             client.joinRoom()
-    //             break
-    //         default:
-    //             console.log('Opcão inválida')
-    //     }
-    // }
+                client.createRoom(nome, privado, senha)
+                break
+            case '2':
+                client.listRooms()
+                break
+            case '3':
+                client.joinRoom()
+                break
+            default:
+                console.log('Opcão inválida')
+        }
+    }
 }
 
 main()
