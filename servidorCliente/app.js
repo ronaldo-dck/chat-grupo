@@ -1,7 +1,8 @@
+const net = require('net')
 const express = require('express')
 const path = require('path')
 const app = express()
-const PORT = process.env.PORT || 4000
+const PORT = process.env.PORT || 9990
 const server = app.listen(PORT, () => console.log(`Client server on port ${PORT}`))
 
 const io = require('socket.io')(server)
@@ -9,6 +10,7 @@ const io = require('socket.io')(server)
 app.use(express.static(path.join(__dirname, 'public')))
 
 let socketsConected = new Set()
+let clients = {}
 
 io.on('connection', onConnected)
 
@@ -17,12 +19,13 @@ function onConnected(socket) {
   socketsConected.add(socket.id)
 
   socket.on('conectar', (nome) => {
-    socketsConected.add(new ChatClient(nome, socket))
+    clients[socket.id] = new ChatClient(nome, socket)
   })
 
   socket.on('disconnect', () => {
     console.log('Socket disconnected', socket.id)
     socketsConected.delete(socket.id)
+    clients[socket.id].close()
   })
 
   socket.on('message', (data) => {
@@ -38,10 +41,20 @@ function onConnected(socket) {
 
 class ChatClient {
   constructor(username, socket) {
-    this.client = socket
+    this.client = new net.Socket();
+    this.front = new CommandHandler(socket)
     this.username = username;
+
     this.client.on('data', (data) => {
-      console.log(`Servidor [${this.username}]:`, data.toString().trim());
+      const message = data.toString().trim();
+      console.log(`Servidor [${this.username}]:`, message);
+      
+      const [command, ...params] = message.split(' ');
+      if (this.front[command]) {
+        this.front[command](params);
+      } else {
+        socket.emit('error', `ERRO Comando desconhecido: ${command}\n`);
+      }
     });
 
     this.client.on('close', () => {
@@ -57,7 +70,7 @@ class ChatClient {
 
   async connect(host = '127.0.0.1', port = 9999) {
     this.client.connect(port, host, () => {
-      console.log(`Conectado ao servidor [${this.username}]`);
+      // console.log(`Conectado ao servidor [${this.username}]`);
       this.register(this.username);
     });
   }
@@ -93,11 +106,20 @@ class ChatClient {
   }
 
   sendMessage(message) {
-    // this.client.write(`${message}\n`);  // write é equivalente a emit('data', ...)
-    this.client.emit('data', `${message}\n`);
+    this.client.write(`${message}\n`);
   }
 
   close() {
     this.client.end();
+  }
+}
+
+class CommandHandler {
+  constructor(socket) {
+    this.socket = socket;
+  }
+
+  REGISTRO_OK(params) {
+    this.socket.emit('connected', `Bem vindo ${this.socket.username}\n`);
   }
 }

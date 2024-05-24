@@ -97,9 +97,10 @@ const server = net.createServer((socket) => {
         const [command, ...params] = message.split(' ');
 
         if (commandHandler[command]) {
+            console.log('comando', command)
             commandHandler[command](params);
         } else {
-            socket.write(`ERRO Comando desconhecido: ${command}\n`);
+            socket.write(`ERRO Comando desconhecido D: : ${command}\n`);
         }
     });
 

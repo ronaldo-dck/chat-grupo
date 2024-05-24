@@ -1,18 +1,33 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-  <meta charset="UTF-8">
-  <!-- <meta http-equiv="Content-Security-Policy" content="connect-src * 'unsafe-inline'; font-src 'self' data:;"> -->
-  <title>Chat Grupo</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <title>Chat app</title>
 </head>
 
 <body>
-  <h1>Criar usuário</h1>
-  <input placeholder="username" type="text" id="nomeUser">
-  <button onclick="conectar()">Conectar</button>
-  <script src="index.js"></script>
+  <div
+    style="display: flex; justify-content: space-between; background-color: lightgrey; align-items: center; padding: 0 10px; height: 7vh;">
+    <div>
+      <h2 style="margin: 0;">Chat App</h2>
+      <p style="padding: 0; margin: 0;">Feito por Marlon Pereira e Ronaldo Drecksler</p>
+    </div>
+    <div style="display: flex; align-items: center;">
+      <h3 style="margin-right: 10px;">Criar usuário</h1>
+        <input style="margin-right: 10px;" placeholder="username" type="text" id="nomeUser">
+        <button onclick="conectar()" id="loginButton">Conectar</button>
+    </div>
+  </div>
+
+  <div id="divControl" style="background-color: rgb(240, 240, 240); display: none; flex-direction: column; width: 20vw; height: 93vh; align-items: center;">
+    <h1>oie</h1>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
+  <script src="main.js"></script>
 </body>
 
 </html>
