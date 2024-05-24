@@ -9,8 +9,7 @@
 </head>
 
 <body>
-  <div
-    style="display: flex; justify-content: space-between; background-color: lightgrey; align-items: center; padding: 0 10px; height: 7vh;">
+  <div id="header">
     <div>
       <h2 style="margin: 0;">Chat App</h2>
       <p style="padding: 0; margin: 0;">Feito por Marlon Pereira e Ronaldo Drecksler</p>
@@ -22,8 +21,19 @@
     </div>
   </div>
 
-  <div id="divControl" style="background-color: rgb(240, 240, 240); display: none; flex-direction: column; width: 20vw; height: 93vh; align-items: center;">
-    <h1>oie</h1>
+  <div id="mainScreen">
+
+    <div id="divControl" style="display: none;">
+      <div id="nameWrapper"></div>
+      <button style="width: 80%; font-size: large" onclick="criarSala()">Criar sala</button>
+      <button style="width: 80%; font-size: large; margin-top: 10px;" onclick="getSalas()" id="getSalasButton">Listar
+        Salas</button>
+      <div id="salasList">
+      </div>
+    </div>
+    <div id="divChat" style="display: none;">
+      <h1>:1111111</h1>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>

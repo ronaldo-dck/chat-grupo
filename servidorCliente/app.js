@@ -1,5 +1,6 @@
 const net = require('net')
 const express = require('express')
+const crypto = require('crypto');
 const path = require('path')
 const app = express()
 const PORT = process.env.PORT || 9990
@@ -21,19 +22,33 @@ function onConnected(socket) {
   socket.on('conectar', (nome) => {
     clients[socket.id] = new ChatClient(nome, socket)
   })
+  
+    socket.on('disconnect', () => {
+      console.log('Socket disconnected', socket.id)
+      socketsConected.delete(socket.id)
+      if (clients[socket.id])
+        clients[socket.id].close()
+    })
 
-  socket.on('disconnect', () => {
-    console.log('Socket disconnected', socket.id)
-    socketsConected.delete(socket.id)
-    clients[socket.id].close()
+  socket.on('salas', () => {
+    clients[socket.id].listRooms()
+  })
+
+  socket.on('criarSala', (sala) => {
+    clients[socket.id].createRoom(sala)
+  })
+
+  socket.on('entrarSala', (sala, pswd) => {
+    clients[socket.id].joinRoom(sala, pswd)
   })
 
   socket.on('message', (data) => {
-    // console.log(data)
+    console.log('message')
     socket.broadcast.emit('chat-message', data)
   })
 
   socket.on('feedback', (data) => {
+    console.log('feedback')
     socket.broadcast.emit('feedback', data)
   })
 }
@@ -42,13 +57,12 @@ function onConnected(socket) {
 class ChatClient {
   constructor(username, socket) {
     this.client = new net.Socket();
-    this.front = new CommandHandler(socket)
+    this.front = new CommandHandler(socket, username)
     this.username = username;
 
     this.client.on('data', (data) => {
       const message = data.toString().trim();
-      console.log(`Servidor [${this.username}]:`, message);
-      
+
       const [command, ...params] = message.split(' ');
       if (this.front[command]) {
         this.front[command](params);
@@ -59,6 +73,7 @@ class ChatClient {
 
     this.client.on('close', () => {
       console.log(`Conexão encerrada [${this.username}]`);
+      socket.emit('close');
     });
 
     this.client.on('error', (err) => {
@@ -79,12 +94,12 @@ class ChatClient {
     this.sendMessage(`REGISTRO ${username}`);
   }
 
-  createRoom(roomName, isPrivate = false, password = '') {
-    if (isPrivate) {
-      const passwordHash = crypto.createHash('sha256').update(password).digest('hex');
-      this.sendMessage(`CRIAR_SALA PRIVADA ${roomName} ${passwordHash}`);
+  createRoom(sala) {
+    if (sala.tipo_de_sala == 'PRIVADA') {
+      const passwordHash = crypto.createHash('sha256').update(sala.senha).digest('hex');
+      this.sendMessage(`CRIAR_SALA PRIVADA ${sala.nome_da_sala} ${passwordHash}`);
     } else {
-      this.sendMessage(`CRIAR_SALA PUBLICA ${roomName}`);
+      this.sendMessage(`CRIAR_SALA PUBLICA ${sala.nome_da_sala}`);
     }
   }
 
@@ -115,11 +130,28 @@ class ChatClient {
 }
 
 class CommandHandler {
-  constructor(socket) {
+  constructor(socket, username) {
     this.socket = socket;
+    this.username = username;
   }
 
   REGISTRO_OK(params) {
-    this.socket.emit('connected', `Bem vindo ${this.socket.username}\n`);
+    this.socket.emit('connected', this.username);
+  }
+
+  SALAS(params) {
+    this.socket.emit('rooms', params);
+  }
+
+  CRIAR_SALA_OK(params) {
+    this.socket.emit('room-created', params);
+  }
+
+  ENTRAR_SALA_OK(params) {
+    this.socket.emit('room-joined', params);
+  }
+
+  ERRO(params) {
+    this.socket.emit('error', params);
   }
 }

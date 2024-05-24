@@ -13,7 +13,7 @@ class CommandHandler {
     REGISTRO(params) {
         const username = params[0];
         if (clients[username]) {
-            this.socket.write('ERRO Usuario ja existe\n');
+            this.socket.write('ERRO Usuario_ja_existe\n');
         } else {
             this.username = username;
             clients[username] = this.socket;
@@ -24,27 +24,32 @@ class CommandHandler {
     CRIAR_SALA(params) {
         const [roomType, roomName, roomPassword] = params;
         if (rooms[roomName]) {
-            this.socket.write('ERRO Sala ja existe\n');
+            this.socket.write('ERRO Sala_ja_existe\n');
         } else {
             rooms[roomName] = {
                 admin: this.username,
                 clients: [this.username],
-                password: roomType === 'PRIVADA' ? crypto.createHash('sha256').update(roomPassword).digest('hex') : null
+                nome_da_sala: roomName,
+                tipo_de_sala: roomType,
+                senha: roomType === 'PRIVADA' ? crypto.createHash('sha256').update(roomPassword).digest('hex') : null
             };
             this.socket.write('CRIAR_SALA_OK\n');
         }
     }
 
     LISTAR_SALAS() {
-        const roomList = Object.keys(rooms).join(' ');
-        this.socket.write(`SALAS ${roomList}\n`);
+        let roomList = []
+        Object.keys(rooms).forEach(roomName => {
+            roomList.push(rooms[roomName]);
+        });
+        this.socket.write(`SALAS ${JSON.stringify(roomList)}\n`);
     }
 
     ENTRAR_SALA(params) {
         const [roomToJoin, roomPasswordToJoin] = params;
         const room = rooms[roomToJoin];
         if (room) {
-            if (room.password && room.password !== crypto.createHash('sha256').update(roomPasswordToJoin).digest('hex')) {
+            if (room.senha && room.senha !== crypto.createHash('sha256').update(roomPasswordToJoin).digest('hex')) {
                 this.socket.write('ERRO Senha incorreta\n');
             } else {
                 room.clients.push(this.username);
@@ -103,6 +108,10 @@ const server = net.createServer((socket) => {
             socket.write(`ERRO Comando desconhecido D: : ${command}\n`);
         }
     });
+
+    socket.on('error', (err) => {
+        console.warn(`Erro:`, err);
+    })
 
     socket.on('end', () => {
         if (username) {
