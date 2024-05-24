@@ -22,13 +22,13 @@ function onConnected(socket) {
   socket.on('conectar', (nome) => {
     clients[socket.id] = new ChatClient(nome, socket)
   })
-  
-    socket.on('disconnect', () => {
-      console.log('Socket disconnected', socket.id)
-      socketsConected.delete(socket.id)
-      if (clients[socket.id])
-        clients[socket.id].close()
-    })
+
+  socket.on('disconnect', () => {
+    console.log('Socket disconnected', socket.id)
+    socketsConected.delete(socket.id)
+    if (clients[socket.id])
+      clients[socket.id].close()
+  })
 
   socket.on('salas', () => {
     clients[socket.id].listRooms()
@@ -38,8 +38,13 @@ function onConnected(socket) {
     clients[socket.id].createRoom(sala)
   })
 
-  socket.on('entrarSala', (sala, pswd) => {
+  socket.on('entrarSala', ({ sala, pswd }) => {
     clients[socket.id].joinRoom(sala, pswd)
+  })
+
+  socket.on('enviarMsg', ({ nome_da_sala, mensagem }) => {
+    console.log(nome_da_sala, mensagem);
+    clients[socket.id].sendMessageToRoom(nome_da_sala, mensagem)
   })
 
   socket.on('message', (data) => {
@@ -148,7 +153,18 @@ class CommandHandler {
   }
 
   ENTRAR_SALA_OK(params) {
-    this.socket.emit('room-joined', params);
+    this.socket.emit('joined-room', params);
+  }
+
+  ENTROU(params) {
+    const [room, username] = params;
+    this.socket.emit('room-joined', username)
+  }
+
+  MENSAGEM(params) { 
+    const [originUser, ...messageParts] = params;
+    const fullMessage = messageParts.join(' ');
+    this.socket.emit('new-message', {originUser, fullMessage})
   }
 
   ERRO(params) {

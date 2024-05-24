@@ -1,6 +1,8 @@
 const socket = io()
 
 let rooms = []
+let username
+let currentRoom = {}
 
 function conectar() {
   const nome = document.getElementById('nomeUser').value;
@@ -42,6 +44,21 @@ const renderSalasBtns = (sala => {
 
 function entrarSala(sala, pswd) {
   socket.emit('entrarSala', { sala, pswd })
+  currentRoom = sala
+}
+
+let input = document.getElementById('chatInput')
+input.addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault()
+    document.getElementById("sendButton").click()
+  }
+})
+
+function enviarMsg() {
+  let mensagem = document.getElementById('chatInput').value
+  appendMessage(username, mensagem)
+  socket.emit('enviarMsg', { 'nome_da_sala': currentRoom, mensagem })
 }
 
 socket.on('error', (data) => {
@@ -54,6 +71,7 @@ socket.on('connected', (data) => {
   document.getElementById('divControl').style.display = 'flex'
   const nome = document.createElement('p')
   nome.textContent = `Conectado como ${data}`
+  username = data
   document.getElementById('nameWrapper').appendChild(nome)
 })
 
@@ -74,6 +92,20 @@ socket.on('room-created', (data) => {
   getSalas()
 })
 
-socket.on('room-joined', (data) => {
+socket.on('joined-room', (data) => {
   document.getElementById('divChat').style.display = 'flex'
 })
+
+socket.on('room-joined', (data) => {
+  appendMessage(data, 'ENTROU')
+})
+
+socket.on('new-message', ({ originUser, fullMessage }) => {
+  appendMessage(originUser, fullMessage)
+})
+
+function appendMessage(originUser, fullMessage) {
+  let msgP = document.createElement('p')
+  msgP.textContent = `${originUser} >> ${fullMessage}`
+  document.getElementById('divChat').appendChild(msgP)
+}

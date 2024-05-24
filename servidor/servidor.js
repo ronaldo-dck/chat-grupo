@@ -71,7 +71,7 @@ class CommandHandler {
         if (rooms[targetRoom]) {
             rooms[targetRoom].clients.forEach(clientName => {
                 if (clientName !== this.username) {
-                    clients[clientName].write(`MENSAGEM ${targetRoom} ${this.username} ${fullMessage}\n`);
+                    clients[clientName].write(`MENSAGEM ${this.username} ${fullMessage}\n`);
                 }
             });
         } else {
