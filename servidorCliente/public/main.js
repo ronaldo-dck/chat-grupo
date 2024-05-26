@@ -71,10 +71,15 @@ input.addEventListener("keypress", function (event) {
 
 function enviarMsg() {
   let mensagem = document.getElementById('chatInput').value
+  if (mensagem == null || mensagem == '') return
   document.getElementById('chatInput').value = ''
   roomEvents.push(`${username} >> ${mensagem}`)
   socket.emit('enviarMsg', { 'nome_da_sala': currentRoom, mensagem })
   renderChat()
+}
+
+function sairSala() {
+  socket.emit('sairSala', currentRoom)
 }
 
 socket.on('error', (data) => {
@@ -117,6 +122,9 @@ socket.on('room-created', (data) => {
 
 socket.on('joined-room', (data) => {
   document.getElementById('divChat').style.display = 'flex'
+  document.getElementById('sairButton').style.display = 'block'
+  roomEvents = ['SALA INGRESSADA']
+  renderChat()
 })
 
 socket.on('room-joined', (data) => {
@@ -139,6 +147,11 @@ function renderChat() {
 }
 
 socket.on('left-room', (data) => {
+  document.getElementById('divChat').style.display = 'none'
+  document.getElementById('sairButton').style.display = 'none'
+})
+
+socket.on('room-left', (data) => {
   roomEvents.push(`${data} SAIU DA SALA`)
   renderChat()
 })

@@ -53,6 +53,10 @@ function onConnected(socket) {
     clients[socket.id].sendMessageToRoom(nome_da_sala, mensagem)
   })
 
+  socket.on('sairSala', (nome_da_sala) => {
+    clients[socket.id].leaveRoom(nome_da_sala)
+  })
+
   socket.on('message', (data) => {
     console.log('message')
     socket.broadcast.emit('chat-message', data)
@@ -173,9 +177,13 @@ class CommandHandler {
     this.socket.emit('new-message', {originUser, fullMessage})
   }
 
+  SAIR_SALA_OK() {
+    this.socket.emit('left-room');
+  }
+
   SAIU(params) {
     const [room, username] = params;
-    this.socket.emit('left-room', username);
+    this.socket.emit('room-left', username);
   }
 
   ERRO(params) {
