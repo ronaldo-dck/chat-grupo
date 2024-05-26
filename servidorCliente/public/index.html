@@ -18,6 +18,7 @@
       <h3 style="margin-right: 10px;">Criar usuário</h1>
         <input style="margin-right: 10px;" placeholder="username" type="text" id="nomeUser">
         <button onclick="conectar()" id="loginButton">Conectar</button>
+        <button style="display: none;" class="cancel" onclick="desconectar()" id="logoutButton">Desconectar</button>
     </div>
   </div>
 
@@ -25,7 +26,9 @@
 
     <div id="divControl" style="display: none;">
       <div id="nameWrapper"></div>
-      <button style="width: 80%; font-size: large" onclick="criarSala()">Criar sala</button>
+      <button class="cancel" style="display: none; width: 80%; font-size: large" onclick="sairSala()"
+        id="sairButton">Sair da sala</button>
+      <button style="width: 80%; font-size: large; margin-top: 10px;" onclick="criarSala()">Criar sala</button>
       <button style="width: 80%; font-size: large; margin-top: 10px;" onclick="getSalas()" id="getSalasButton">Listar
         Salas</button>
       <div id="salasList">
@@ -33,6 +36,7 @@
     </div>
     <div id="divChat" style="display: none;">
       <h1>Chat</h1>
+      <div id="messages"></div>
       <input type="text" id="chatInput">
       <button onclick="enviarMsg()" id="sendButton">Enviar</button>
     </div>

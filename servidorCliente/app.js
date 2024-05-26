@@ -19,8 +19,14 @@ function onConnected(socket) {
   console.log('Socket connected', socket.id)
   socketsConected.add(socket.id)
 
+  socket.emit('close')
+
   socket.on('conectar', (nome) => {
     clients[socket.id] = new ChatClient(nome, socket)
+  })
+
+  socket.on('desconectar', (nome) => {
+    clients[socket.id].close()
   })
 
   socket.on('disconnect', () => {
@@ -165,6 +171,11 @@ class CommandHandler {
     const [originUser, ...messageParts] = params;
     const fullMessage = messageParts.join(' ');
     this.socket.emit('new-message', {originUser, fullMessage})
+  }
+
+  SAIU(params) {
+    const [room, username] = params;
+    this.socket.emit('left-room', username);
   }
 
   ERRO(params) {

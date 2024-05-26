@@ -5,9 +5,9 @@ const clients = {};
 const rooms = {};
 
 class CommandHandler {
-    constructor(socket, username) {
+    constructor(socket) {
         this.socket = socket;
-        this.username = username;
+        this.username = null;
     }
 
     REGISTRO(params) {
@@ -94,8 +94,7 @@ class CommandHandler {
 }
 
 const server = net.createServer((socket) => {
-    let username = null;
-    const commandHandler = new CommandHandler(socket, username);
+    const commandHandler = new CommandHandler(socket);
 
     socket.on('data', (data) => {
         const message = data.toString().trim();
@@ -110,18 +109,22 @@ const server = net.createServer((socket) => {
     });
 
     socket.on('error', (err) => {
-        console.warn(`Erro:`, err);
+        console.warn(`Erro:`, commandHandler.username, err.code);
+
+        if (err.code === 'ECONNRESET') { 
+            socket.end()
+        }
     })
 
     socket.on('end', () => {
-        if (username) {
-            delete clients[username];
+        if (commandHandler.username) {
+            delete clients[commandHandler.username];
             for (const roomName in rooms) {
                 const room = rooms[roomName];
-                if (room.clients.includes(username)) {
-                    room.clients = room.clients.filter(clientName => clientName !== username);
+                if (room.clients.includes(commandHandler.username)) {
+                    room.clients = room.clients.filter(clientName => clientName !== commandHandler.username);
                     room.clients.forEach(clientName => {
-                        clients[clientName].write(`SAIU ${roomName} ${username}\n`);
+                        clients[clientName].write(`SAIU ${roomName} ${commandHandler.username}\n`);
                     });
                 }
             }

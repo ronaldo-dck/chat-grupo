@@ -28,6 +28,18 @@ button:active {
   background-color: rgb(50, 169, 202);
 }
 
+.cancel {
+  background-color: rgb(255, 25, 0);
+}
+
+.cancel:hover {
+  background-color: rgb(255, 100, 100);
+}
+
+.cancel:active {
+  background-color: rgb(202, 60, 50);
+}
+
 #header {
   display: flex;
   justify-content: space-between;

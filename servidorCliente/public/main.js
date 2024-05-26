@@ -3,11 +3,24 @@ const socket = io()
 let rooms = []
 let username
 let currentRoom = {}
+let roomEvents = []
 
 function conectar() {
   const nome = document.getElementById('nomeUser').value;
   socket.emit('conectar', nome)
 }
+
+function desconectar() {
+  socket.emit('desconectar')
+}
+
+let inputConectar = document.getElementById('nomeUser')
+inputConectar.addEventListener("keypress", function (event) {
+  if (event.key === "Enter") {
+    event.preventDefault()
+    document.getElementById("loginButton").click()
+  }
+})
 
 function getSalas() {
   socket.emit('salas')
@@ -15,6 +28,7 @@ function getSalas() {
 
 function criarSala() {
   const nome_da_sala = prompt('Qual o nome da sala?')
+  if (nome_da_sala == null || nome_da_sala == '') return
   let tipo_de_sala = 'PUBLICA'
   let senha = ''
   if (confirm('Sala privada?')) {
@@ -57,8 +71,10 @@ input.addEventListener("keypress", function (event) {
 
 function enviarMsg() {
   let mensagem = document.getElementById('chatInput').value
-  appendMessage(username, mensagem)
+  document.getElementById('chatInput').value = ''
+  roomEvents.push(`${username} >> ${mensagem}`)
   socket.emit('enviarMsg', { 'nome_da_sala': currentRoom, mensagem })
+  renderChat()
 }
 
 socket.on('error', (data) => {
@@ -67,18 +83,25 @@ socket.on('error', (data) => {
 })
 
 socket.on('connected', (data) => {
-  document.getElementById('loginButton').disabled = true
+  document.getElementById('loginButton').style.display = 'none'
+  document.getElementById('logoutButton').style.display = 'block'
   document.getElementById('divControl').style.display = 'flex'
+
   const nome = document.createElement('p')
   nome.textContent = `Conectado como ${data}`
   username = data
   document.getElementById('nameWrapper').appendChild(nome)
+
+  getSalas()
 })
 
 socket.on('close', () => {
-  document.getElementById('loginButton').disabled = false
+  document.getElementById('loginButton').style.display = 'block'
+  document.getElementById('logoutButton').style.display = 'none'
   document.getElementById('divControl').style.display = 'none'
+  document.getElementById('divChat').style.display = 'none'
   document.getElementById('nameWrapper').innerHTML = ''
+  roomEvents = []
 })
 
 socket.on('rooms', (data) => {
@@ -97,15 +120,25 @@ socket.on('joined-room', (data) => {
 })
 
 socket.on('room-joined', (data) => {
-  appendMessage(data, 'ENTROU')
+  roomEvents.push(`${data} ENTROU NA SALA`)
+  renderChat()
 })
 
 socket.on('new-message', ({ originUser, fullMessage }) => {
-  appendMessage(originUser, fullMessage)
+  roomEvents.push(`${originUser} >> ${fullMessage}`)
+  renderChat()
 })
 
-function appendMessage(originUser, fullMessage) {
-  let msgP = document.createElement('p')
-  msgP.textContent = `${originUser} >> ${fullMessage}`
-  document.getElementById('divChat').appendChild(msgP)
+function renderChat() {
+  document.getElementById('messages').innerHTML = ''
+  roomEvents.map((log) => {
+    let msgP = document.createElement('p')
+    msgP.textContent = log
+    document.getElementById('messages').appendChild(msgP)
+  })
 }
+
+socket.on('left-room', (data) => {
+  roomEvents.push(`${data} SAIU DA SALA`)
+  renderChat()
+})
