@@ -2,7 +2,7 @@ const socket = io()
 
 let rooms = []
 let username
-let currentRoom = {}
+let currentRoom = {nome: null, clientes: [], banidos: []}
 let roomEvents = []
 
 function conectar() {
@@ -36,6 +36,7 @@ function criarSala() {
     tipo_de_sala = 'PRIVADA'
   }
 
+  currentRoom = { nome: nome_da_sala, clientes: [username], banidos: [] }
   socket.emit('criarSala', { nome_da_sala, tipo_de_sala, senha })
 }
 
@@ -58,7 +59,7 @@ const renderSalasBtns = (sala => {
 
 function entrarSala(sala, pswd) {
   socket.emit('entrarSala', { sala, pswd })
-  currentRoom = sala
+  currentRoom = { nome: sala, clientes: [], banidos: [] }
 }
 
 let input = document.getElementById('chatInput')
@@ -74,12 +75,12 @@ function enviarMsg() {
   if (mensagem == null || mensagem == '') return
   document.getElementById('chatInput').value = ''
   roomEvents.push(`${username} >> ${mensagem}`)
-  socket.emit('enviarMsg', { 'nome_da_sala': currentRoom, mensagem })
+  socket.emit('enviarMsg', { 'nome_da_sala': currentRoom.nome, mensagem })
   renderChat()
 }
 
 function sairSala() {
-  socket.emit('sairSala', currentRoom)
+  socket.emit('sairSala', currentRoom.nome)
 }
 
 socket.on('error', (data) => {
@@ -105,6 +106,7 @@ socket.on('close', () => {
   document.getElementById('logoutButton').style.display = 'none'
   document.getElementById('divControl').style.display = 'none'
   document.getElementById('divChat').style.display = 'none'
+  document.getElementById('adminPanel').style.display = 'none'
   document.getElementById('nameWrapper').innerHTML = ''
   roomEvents = []
 })
@@ -118,6 +120,11 @@ socket.on('rooms', (data) => {
 
 socket.on('room-created', (data) => {
   getSalas()
+  document.getElementById('divChat').style.display = 'flex'
+  document.getElementById('sairButton').style.display = 'block'
+  document.getElementById('adminPanel').style.display = 'flex'
+  roomEvents = ['SALA INGRESSADA']
+  renderChat()
 })
 
 socket.on('joined-room', (data) => {
@@ -128,6 +135,7 @@ socket.on('joined-room', (data) => {
 })
 
 socket.on('room-joined', (data) => {
+  currentRoom.clientes.push(data)
   roomEvents.push(`${data} ENTROU NA SALA`)
   renderChat()
 })
@@ -149,9 +157,11 @@ function renderChat() {
 socket.on('left-room', (data) => {
   document.getElementById('divChat').style.display = 'none'
   document.getElementById('sairButton').style.display = 'none'
+  document.getElementById('adminPanel').style.display = 'none'
 })
 
 socket.on('room-left', (data) => {
+  currentRoom.clientes = currentRoom.clientes.filter((user) => user != data)
   roomEvents.push(`${data} SAIU DA SALA`)
   renderChat()
 })

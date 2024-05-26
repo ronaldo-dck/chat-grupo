@@ -29,6 +29,7 @@ class CommandHandler {
             rooms[roomName] = {
                 admin: this.username,
                 clients: [this.username],
+                banidos: ['teste'],
                 nome_da_sala: roomName,
                 tipo_de_sala: roomType,
                 senha: roomType === 'PRIVADA' ? crypto.createHash('sha256').update(roomPassword).digest('hex') : null
@@ -52,6 +53,10 @@ class CommandHandler {
             if (room.senha && room.senha !== crypto.createHash('sha256').update(roomPasswordToJoin).digest('hex')) {
                 this.socket.write('ERRO Senha incorreta\n');
             } else {
+                if (room.banidos.includes(this.username)) {
+                    this.socket.write('ERRO Usuario_banido\n');
+                    return;
+                }
                 room.clients.push(this.username);
                 this.socket.write(`ENTRAR_SALA_OK ${room.clients.join(' ')}\n`);
                 room.clients.forEach(clientName => {

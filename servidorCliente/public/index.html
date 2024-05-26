@@ -37,8 +37,16 @@
     <div id="divChat" style="display: none;">
       <h1>Chat</h1>
       <div id="messages"></div>
-      <input type="text" id="chatInput">
-      <button onclick="enviarMsg()" id="sendButton">Enviar</button>
+      <div id="chatInputWrapper">
+        <input type="text" id="chatInput">
+        <button onclick="enviarMsg()" id="sendButton"><img src="./send.png" alt="Enviar" height="16"></button>
+      </div>
+    </div>
+    <div id="adminPanel" style="display: none;">
+      <h2>Clientes Conectados</h2>
+      <div id="clientsList"></div>
+      <button class="cancel" style="width: 80%; font-size: large; margin-top: 10px;" onclick="fecharSala()">Fechar
+        sala</button>
     </div>
   </div>
 

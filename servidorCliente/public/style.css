@@ -17,6 +17,9 @@ button {
   border-radius: 20px;
   padding: 10px;
   border: none;
+  display: flex;
+  justify-content: center;
+  align-items: center
 }
 
 button:hover {
@@ -61,6 +64,7 @@ button:active {
   width: 20vw;
   height: 93vh;
   align-items: center;
+  text-align: center;
 }
 
 #salasList {
@@ -84,7 +88,31 @@ button:active {
 #divChat  {
   display: flex;
   flex-direction: column;
-  width: 80vw;
+  width: 60vw;
   height: 93vh;
   align-items: center;
+}
+
+#chatInputWrapper {
+  display: flex;
+  justify-content: space-between;
+  width: 40vw;
+}
+
+#chatInput {
+  width: 80%;
+  margin-right: 5%;
+}
+
+#sendButton {
+  width: 15%;
+}
+
+#adminPanel {
+  background-color: rgb(240, 240, 240);
+  flex-direction: column;
+  width: 20vw;
+  height: 93vh;
+  align-items: center;
+  text-align: center;
 }
