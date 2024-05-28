@@ -2,7 +2,7 @@ const socket = io()
 
 let rooms = []
 let username
-let currentRoom = {nome: null, clientes: [], banidos: []}
+let currentRoom = { nome: null, clientes: [], banidos: [] }
 let roomEvents = []
 
 function conectar() {
@@ -23,6 +23,7 @@ inputConectar.addEventListener("keypress", function (event) {
 })
 
 function getSalas() {
+  console.log('current', currentRoom);
   socket.emit('salas')
 }
 
@@ -57,9 +58,27 @@ const renderSalasBtns = (sala => {
   document.getElementById('salasList').appendChild(button)
 })
 
+const renderClients = (sala => {
+  document.getElementById('clientsList').innerHTML = ''
+  console.log(sala);
+  if (sala.clientes.length == 0) return
+
+  sala.clientes.map(username => {
+    const button = document.createElement('button')
+    button.className = 'clientsButton'
+    button.textContent = username
+    button.onclick = () => { if (confirm('Banir usuario?')) { banirUser(username) } }
+    document.getElementById('clientsList').appendChild(button)
+  })
+})
+
 function entrarSala(sala, pswd) {
-  socket.emit('entrarSala', { sala, pswd })
-  currentRoom = { nome: sala, clientes: [], banidos: [] }
+  if (currentRoom.nome == null) {
+    socket.emit('entrarSala', { sala, pswd })
+    currentRoom = { nome: sala, clientes: [], banidos: [] }
+  } else {
+    alert('Saia de sua sala atual e e tente novamente')
+  }
 }
 
 let input = document.getElementById('chatInput')
@@ -79,12 +98,38 @@ function enviarMsg() {
   renderChat()
 }
 
+function banirUser(username) {
+  if (username == currentRoom.clientes[0]) {
+    alert('Não é possível banir o criador da sala')
+    return
+  }
+  socket.emit('banirUser', { 'nome_da_sala': currentRoom.nome, 'usuario': username })
+}
+
 function sairSala() {
+  if (username == currentRoom.clientes[0]) {
+    if (confirm('Realmente deseja sair da sala? (ela será fechada)')) {
+      socket.emit('fecharSala', currentRoom.nome)
+    }
+  }
   socket.emit('sairSala', currentRoom.nome)
+}
+
+function fecharSala() {
+  if (username == currentRoom.clientes[0]) {
+    if (confirm('Realmente deseja fechar a sala?')) {
+      socket.emit('fecharSala', currentRoom.nome)
+    }
+  } else {
+    alert('Somente o criador da sala pode fechar a sala')
+  }
 }
 
 socket.on('error', (data) => {
   console.error(data)
+  if (data[0] == `Usuario_banido`) {
+    currentRoom = { nome: null, clientes: [], banidos: [] }
+  }
   alert(data)
 })
 
@@ -92,6 +137,7 @@ socket.on('connected', (data) => {
   document.getElementById('loginButton').style.display = 'none'
   document.getElementById('logoutButton').style.display = 'block'
   document.getElementById('divControl').style.display = 'flex'
+  document.getElementById('nomeUser').disabled = true
 
   const nome = document.createElement('p')
   nome.textContent = `Conectado como ${data}`
@@ -104,6 +150,7 @@ socket.on('connected', (data) => {
 socket.on('close', () => {
   document.getElementById('loginButton').style.display = 'block'
   document.getElementById('logoutButton').style.display = 'none'
+  document.getElementById('nomeUser').disabled = false
   document.getElementById('divControl').style.display = 'none'
   document.getElementById('divChat').style.display = 'none'
   document.getElementById('adminPanel').style.display = 'none'
@@ -125,6 +172,7 @@ socket.on('room-created', (data) => {
   document.getElementById('adminPanel').style.display = 'flex'
   roomEvents = ['SALA INGRESSADA']
   renderChat()
+  renderClients(currentRoom)
 })
 
 socket.on('joined-room', (data) => {
@@ -138,6 +186,7 @@ socket.on('room-joined', (data) => {
   currentRoom.clientes.push(data)
   roomEvents.push(`${data} ENTROU NA SALA`)
   renderChat()
+  renderClients(currentRoom)
 })
 
 socket.on('new-message', ({ originUser, fullMessage }) => {
@@ -158,10 +207,43 @@ socket.on('left-room', (data) => {
   document.getElementById('divChat').style.display = 'none'
   document.getElementById('sairButton').style.display = 'none'
   document.getElementById('adminPanel').style.display = 'none'
+  currentRoom = { nome: null, clientes: [], banidos: [] }
 })
 
 socket.on('room-left', (data) => {
   currentRoom.clientes = currentRoom.clientes.filter((user) => user != data)
   roomEvents.push(`${data} SAIU DA SALA`)
   renderChat()
+  renderClients(currentRoom)
+})
+
+socket.on('closed-room', (data) => {
+  alert('Sala fechada com sucesso')
+  document.getElementById('divChat').style.display = 'none'
+  document.getElementById('sairButton').style.display = 'none'
+  document.getElementById('adminPanel').style.display = 'none'
+  getSalas()
+  currentRoom = { nome: null, clientes: [], banidos: [] }
+})
+
+socket.on('room-closed', (data) => {
+  alert('O administrador fechou a sala ' + data)
+  document.getElementById('divChat').style.display = 'none'
+  document.getElementById('sairButton').style.display = 'none'
+  document.getElementById('adminPanel').style.display = 'none'
+  getSalas()
+  currentRoom = { nome: null, clientes: [], banidos: [] }
+})
+
+socket.on('banned', (data) => {
+  currentRoom = { nome: null, clientes: [], banidos: [] }
+  alert(`Voce foi banido da sala`)
+  document.getElementById('divChat').style.display = 'none'
+  document.getElementById('sairButton').style.display = 'none'
+  document.getElementById('adminPanel').style.display = 'none'
+  getSalas()
+})
+
+socket.on('userBanned', () => {
+  alert('Usuário banido com sucesso')
 })

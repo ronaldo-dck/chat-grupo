@@ -53,8 +53,16 @@ function onConnected(socket) {
     clients[socket.id].sendMessageToRoom(nome_da_sala, mensagem)
   })
 
+  socket.on('banirUser', ({ nome_da_sala, usuario }) => {
+    clients[socket.id].banUser(nome_da_sala, usuario)
+  })
+
   socket.on('sairSala', (nome_da_sala) => {
     clients[socket.id].leaveRoom(nome_da_sala)
+  })
+
+  socket.on('fecharSala', (nome_da_sala) => {
+    clients[socket.id].closeRoom(nome_da_sala)
   })
 
   socket.on('message', (data) => {
@@ -131,8 +139,16 @@ class ChatClient {
     this.sendMessage(`ENVIAR_MENSAGEM ${roomName} ${message}`);
   }
 
+  banUser(roomName, username) {
+    this.sendMessage(`BANIR_USUARIO ${roomName} ${username}`);
+  }
+
   leaveRoom(roomName) {
     this.sendMessage(`SAIR_SALA ${roomName}`);
+  }
+
+  closeRoom(roomName) {
+    this.sendMessage(`FECHAR_SALA ${roomName}`);
   }
 
   sendMessage(message) {
@@ -181,9 +197,27 @@ class CommandHandler {
     this.socket.emit('left-room');
   }
 
+  FECHAR_SALA_OK() {
+    this.socket.emit('closed-room');
+  }
+
   SAIU(params) {
     const [room, username] = params;
     this.socket.emit('room-left', username);
+  }
+
+  SALA_FECHADA(params) {
+    const [room] = params;
+    this.socket.emit('room-closed', room);
+  }
+
+  BANIDO_DA_SALA(params) {
+    const [room] = params;
+    this.socket.emit('banned', {room});
+  }
+
+  BANIR_USUARIO_OK() {
+    this.socket.emit('userBanned');
   }
 
   ERRO(params) {

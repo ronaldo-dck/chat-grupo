@@ -84,6 +84,23 @@ class CommandHandler {
         }
     }
 
+    BANIR_USUARIO(params) {
+        const [targetRoom, targetUser] = params;
+        if (rooms[targetRoom] && rooms[targetRoom].clients.includes(targetUser)) {
+            clients[targetUser].write(`BANIDO_DA_SALA ${targetRoom}\n`);
+            rooms[targetRoom].clients = rooms[targetRoom].clients.filter(clientName => clientName !== targetUser);
+            rooms[targetRoom].banidos.push(targetUser);
+            rooms[targetRoom].clients.forEach(clientName => {
+                clients[clientName].write(`SAIU ${targetRoom} ${targetUser}\n`);
+            });
+            setTimeout(() => {
+                this.socket.write(`BANIR_USUARIO_OK\n`);
+            }, 500);
+        } else {
+            this.socket.write('ERRO Sala ou usuario nao existe\n');
+        }
+    }
+
     SAIR_SALA(params) {
         const roomToLeave = params[0];
         if (rooms[roomToLeave]) {
@@ -92,6 +109,20 @@ class CommandHandler {
             rooms[roomToLeave].clients.forEach(clientName => {
                 clients[clientName].write(`SAIU ${roomToLeave} ${this.username}\n`);
             });
+        } else {
+            this.socket.write('ERRO Sala nao existe\n');
+        }
+    }
+
+    FECHAR_SALA(params) {
+        const roomToClose = params[0];
+        if (rooms[roomToClose]) {
+            rooms[roomToClose].clients = rooms[roomToClose].clients.filter(clientName => clientName !== this.username);
+            rooms[roomToClose].clients.forEach(clientName => {
+                clients[clientName].write(`SALA_FECHADA ${roomToClose}\n`);
+            });
+            delete rooms[roomToClose];
+            this.socket.write('FECHAR_SALA_OK\n');
         } else {
             this.socket.write('ERRO Sala nao existe\n');
         }
