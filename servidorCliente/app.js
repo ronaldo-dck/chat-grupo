@@ -35,7 +35,7 @@ function onConnected(socket) {
     if (clients[socket.id])
       clients[socket.id].close()
   })
-  
+
   socket.on('autenticacao', (username) => {
     clients[socket.id].authenticate(username)
   })
@@ -87,6 +87,7 @@ class ChatClient {
     this.front = new CommandHandler(socket, username)
     this.username = username;
     this.secureKey = null
+    this.symetricKey = null
 
     this.client.on('data', (data) => {
       const message = data.toString().trim();
@@ -122,6 +123,14 @@ class ChatClient {
     this.sendMessage(`REGISTRO ${username}`);
   }
 
+  authenticate(username) {
+    this.sendMessage(`AUTENTICACAO ${username}`);
+  }
+
+  sendSymetricKey() {
+    this.sendMessage(`CHAVE_SIMETRICA ${''}`);
+  }
+
   createRoom(sala) {
     if (sala.tipo_de_sala == 'PRIVADA') {
       const passwordHash = crypto.createHash('sha256').update(sala.senha).digest('hex');
@@ -129,10 +138,6 @@ class ChatClient {
     } else {
       this.sendMessage(`CRIAR_SALA PUBLICA ${sala.nome_da_sala}`);
     }
-  }
-
-  authenticate(username) {
-    this.sendMessage(`AUTENTICACAO ${username}`);
   }
 
   listRooms() {
@@ -169,6 +174,8 @@ class ChatClient {
   }
 }
 
+const { generateAESKey, encryptWithRSAPublicKey } = require('./secure');
+
 class CommandHandler {
   constructor(socket, username) {
     this.socket = socket;
@@ -182,6 +189,8 @@ class CommandHandler {
   CHAVE_PUBLICA(params) {
     // this.socket.emit('public-key', params);
     clients[this.socket.id].secureKey = params[0]
+    data = encryptWithRSAPublicKey(generateAESKey(params[0]))
+    clients[this.socket.id].sendSymetricKey(data)
   }
 
   SALAS(params) {
@@ -201,10 +210,10 @@ class CommandHandler {
     this.socket.emit('room-joined', username)
   }
 
-  MENSAGEM(params) { 
+  MENSAGEM(params) {
     const [originUser, ...messageParts] = params;
     const fullMessage = messageParts.join(' ');
-    this.socket.emit('new-message', {originUser, fullMessage})
+    this.socket.emit('new-message', { originUser, fullMessage })
   }
 
   SAIR_SALA_OK() {
@@ -227,7 +236,7 @@ class CommandHandler {
 
   BANIDO_DA_SALA(params) {
     const [room] = params;
-    this.socket.emit('banned', {room});
+    this.socket.emit('banned', { room });
   }
 
   BANIR_USUARIO_OK() {
