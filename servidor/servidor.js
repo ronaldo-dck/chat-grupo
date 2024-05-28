@@ -4,6 +4,21 @@ const crypto = require('crypto');
 const clients = {};
 const rooms = {};
 
+const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
+    modulusLength: 1024,
+    publicKeyEncoding: {
+        type: 'pkcs1',
+        format: 'pem'
+    },
+    privateKeyEncoding: {
+        type: 'pkcs1',
+        format: 'pem'
+    }
+});
+
+
+
+
 class CommandHandler {
     constructor(socket) {
         this.socket = socket;
@@ -19,6 +34,13 @@ class CommandHandler {
             clients[username] = this.socket;
             this.socket.write('REGISTRO_OK\n');
         }
+    }
+
+    AUTENTICACAO(params) {
+
+
+
+        this.socket.write(`CHAVE_PUBLICA ${''}`)
     }
 
     CRIAR_SALA(params) {
@@ -147,7 +169,7 @@ const server = net.createServer((socket) => {
     socket.on('error', (err) => {
         console.warn(`Erro:`, commandHandler.username, err.code);
 
-        if (err.code === 'ECONNRESET') { 
+        if (err.code === 'ECONNRESET') {
             socket.end()
         }
     })
@@ -158,6 +180,9 @@ const server = net.createServer((socket) => {
             for (const roomName in rooms) {
                 const room = rooms[roomName];
                 if (room.clients.includes(commandHandler.username)) {
+                    if (room.admin === commandHandler.username) {
+                        commandHandler.FECHAR_SALA([roomName]);
+                    }
                     room.clients = room.clients.filter(clientName => clientName !== commandHandler.username);
                     room.clients.forEach(clientName => {
                         clients[clientName].write(`SAIU ${roomName} ${commandHandler.username}\n`);

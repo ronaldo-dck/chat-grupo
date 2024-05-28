@@ -22,23 +22,31 @@ inputConectar.addEventListener("keypress", function (event) {
   }
 })
 
+function getAuth() {
+  socket.emit('autenticacao', username)
+}
+
 function getSalas() {
   console.log('current', currentRoom);
   socket.emit('salas')
 }
 
 function criarSala() {
-  const nome_da_sala = prompt('Qual o nome da sala?')
-  if (nome_da_sala == null || nome_da_sala == '') return
-  let tipo_de_sala = 'PUBLICA'
-  let senha = ''
-  if (confirm('Sala privada?')) {
-    senha = prompt('Senha: ')
-    tipo_de_sala = 'PRIVADA'
-  }
+  if (currentRoom.nome == null) {
+    const nome_da_sala = prompt('Qual o nome da sala?')
+    if (nome_da_sala == null || nome_da_sala == '') return
+    let tipo_de_sala = 'PUBLICA'
+    let senha = ''
+    if (confirm('Sala privada?')) {
+      senha = prompt('Senha: ')
+      tipo_de_sala = 'PRIVADA'
+    }
 
-  currentRoom = { nome: nome_da_sala, clientes: [username], banidos: [] }
-  socket.emit('criarSala', { nome_da_sala, tipo_de_sala, senha })
+    currentRoom = { nome: nome_da_sala, clientes: [username], banidos: [] }
+    socket.emit('criarSala', { nome_da_sala, tipo_de_sala, senha })
+  } else {
+    alert('Saia de sua sala atual e e tente novamente')
+  }
 }
 
 const renderSalasBtns = (sala => {
@@ -144,7 +152,8 @@ socket.on('connected', (data) => {
   username = data
   document.getElementById('nameWrapper').appendChild(nome)
 
-  getSalas()
+  // getSalas()
+  getAuth()
 })
 
 socket.on('close', () => {

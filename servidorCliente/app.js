@@ -35,6 +35,10 @@ function onConnected(socket) {
     if (clients[socket.id])
       clients[socket.id].close()
   })
+  
+  socket.on('autenticacao', (username) => {
+    clients[socket.id].authenticate(username)
+  })
 
   socket.on('salas', () => {
     clients[socket.id].listRooms()
@@ -82,6 +86,7 @@ class ChatClient {
     this.client = new net.Socket();
     this.front = new CommandHandler(socket, username)
     this.username = username;
+    this.secureKey = null
 
     this.client.on('data', (data) => {
       const message = data.toString().trim();
@@ -126,6 +131,10 @@ class ChatClient {
     }
   }
 
+  authenticate(username) {
+    this.sendMessage(`AUTENTICACAO ${username}`);
+  }
+
   listRooms() {
     this.sendMessage('LISTAR_SALAS');
   }
@@ -168,6 +177,11 @@ class CommandHandler {
 
   REGISTRO_OK(params) {
     this.socket.emit('connected', this.username);
+  }
+
+  CHAVE_PUBLICA(params) {
+    // this.socket.emit('public-key', params);
+    clients[this.socket.id].secureKey = params[0]
   }
 
   SALAS(params) {
