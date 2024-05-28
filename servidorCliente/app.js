@@ -5,6 +5,7 @@ const path = require('path')
 const app = express()
 const PORT = process.env.PORT || 9990
 const server = app.listen(PORT, () => console.log(`Client server on port ${PORT}`))
+const { generateAESKey, encryptWithRSAPublicKey } = require('./secure');
 
 const io = require('socket.io')(server)
 
@@ -80,7 +81,6 @@ function onConnected(socket) {
   })
 }
 
-
 class ChatClient {
   constructor(username, socket) {
     this.client = new net.Socket();
@@ -127,8 +127,8 @@ class ChatClient {
     this.sendMessage(`AUTENTICACAO ${username}`);
   }
 
-  sendSymetricKey() {
-    this.sendMessage(`CHAVE_SIMETRICA ${''}`);
+  sendSymetricKey(data) {
+    this.sendMessage(`CHAVE_SIMETRICA ${data}`);
   }
 
   createRoom(sala) {
@@ -174,7 +174,6 @@ class ChatClient {
   }
 }
 
-const { generateAESKey, encryptWithRSAPublicKey } = require('./secure');
 
 class CommandHandler {
   constructor(socket, username) {
@@ -189,7 +188,8 @@ class CommandHandler {
   CHAVE_PUBLICA(params) {
     // this.socket.emit('public-key', params);
     clients[this.socket.id].secureKey = params[0]
-    data = encryptWithRSAPublicKey(generateAESKey(params[0]))
+    cleients[this.socket.id].AESKey = generateAESKey() 
+    data = encryptWithRSAPublicKey(params[0])
     clients[this.socket.id].sendSymetricKey(data)
   }
 

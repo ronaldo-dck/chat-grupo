@@ -40,7 +40,8 @@ class CommandHandler {
     }
 
     CHAVE_SIMETRICA(params) {
-        this.symetricKey = params[0];
+        clients[this.username].AESKey = crypto.privateDecrypt(params[0]);
+        console.log(crypto.privateDecrypt(params[0]))
     }
 
     CRIAR_SALA(params) {
