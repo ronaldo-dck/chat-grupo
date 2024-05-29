@@ -91,14 +91,15 @@ class ChatClient {
     this.iv = crypto.randomBytes(16);
 
     this.client.on('data', (data) => {
+      const tmp = Buffer.from(data, 'base64').toString('utf-8');
       try {
-        const message = data.toString().trim();
+        const decryptedMessage = Buffer.from(tmp, 'base64').toString('utf-8');
+        const message = decryptedMessage.toString().trim();
         const [command, ...params] = message.split(' ');
         
         this.front[command](params);
         console.log('comando', command)
       } catch (err) { 
-            const tmp = Buffer.from(data, 'base64').toString('utf-8');
             const decryptedHex = Buffer.from(tmp, 'base64').toString('utf-8')
             const message = this.front.decryptAES(decryptedHex);
             const [command, ...params] = message.toString().trim().split(' ');
@@ -136,9 +137,6 @@ class ChatClient {
   }
 
   sendSymetricKey(data) {
-    // console.log(data)
-    // console.log(this.secureKey);
-    // data = crypto.publicEncrypt(this.secureKey, data);
     this.handshakeMessage(`CHAVE_SIMETRICA ${data}`);
   }
 
@@ -177,9 +175,8 @@ class ChatClient {
   }
 
   handshakeMessage(message) {
-    // const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
-    // this.client.write(`${base64EncodedMessage}\n`);
-    this.client.write(`${message}\n`);
+    const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
+    this.client.write(`${base64EncodedMessage}\n`);
   }
 
   sendMessage(message) {
@@ -188,18 +185,10 @@ class ChatClient {
     this.client.write(`${base64EncodedMessage}\n`);
   }
 
-  // encryptAES(message) {
-  //   const cipher = crypto.createCipheriv('aes-256-cbc', this.AESKey, Buffer.alloc(16));
-  //   let encrypted = cipher.update(message, 'utf-8', 'hex');
-  //   encrypted += cipher.final('hex');
-  //   return encrypted;
-  // }
-
   encryptAES(message) {
     const cipher = crypto.createCipheriv('aes-256-cbc', this.AESKey, this.iv);
     let encrypted = cipher.update(message, 'utf-8', 'hex');
     encrypted += cipher.final('hex');
-    // Concatenar IV com a mensagem criptografada para usá-lo na descriptografia
     return this.iv.toString('hex') + ':' + encrypted;
   }
 
@@ -214,13 +203,6 @@ class CommandHandler {
     this.socket = socket;
     this.username = username;
   }
-
-  // decryptAES(encryptedMessage) {
-  //   const decipher = crypto.createDecipheriv('aes-256-cbc', this.AESKey, Buffer.alloc(16));
-  //   let decrypted = decipher.update(encryptedMessage, 'hex', 'utf-8');
-  //   decrypted += decipher.final('utf-8');
-  //   return decrypted;
-  // }
 
   decryptAES(encryptedMessage) {
     const parts = encryptedMessage.split(':');

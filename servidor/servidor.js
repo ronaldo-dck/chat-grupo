@@ -16,14 +16,6 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
     }
 });
 
-
-/**
- * 
- * 
- * 
- */
-
-
 class CommandHandler {
     constructor(socket) {
         this.socket = socket;
@@ -160,9 +152,8 @@ class CommandHandler {
     }
 
     handshakeMessage(message) {
-        // const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
-        // this.socket.write(base64EncodedMessage);
-        this.socket.write(message);
+        const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
+        this.socket.write(base64EncodedMessage);
     }
 
     sendMessage(message, target = this) {
@@ -196,14 +187,15 @@ const server = net.createServer((socket) => {
     const commandHandler = new CommandHandler(socket);
 
     socket.on('data', (data) => {
+        const tmp = Buffer.from(data, 'base64').toString('utf-8');
         try {
-            const message = data.toString().trim();
+            const decryptedMessage = Buffer.from(tmp, 'base64').toString('utf-8');
+            const message = decryptedMessage.toString().trim();
             const [command, ...params] = message.split(' ');
             
             commandHandler[command](params);
             console.log('comando', command)
         } catch (err) { 
-            const tmp = Buffer.from(data, 'base64').toString('utf-8');
             const decryptedHex = Buffer.from(tmp, 'base64').toString('utf-8')
             console.log(decryptedHex)
             const message = commandHandler.decryptAES(decryptedHex);
@@ -232,10 +224,6 @@ const server = net.createServer((socket) => {
                         commandHandler.FECHAR_SALA([roomName]);
                     }
                     commandHandler.SAIR_SALA([roomName]);
-                    // room.clients = room.clients.filter(clientName => clientName !== commandHandler.username);
-                    // room.clients.forEach(clientName => {
-                    //     this.sendMessage(`SAIU ${roomName} ${commandHandler.username}\n`, clients[clientName]););
-                    // });
                 }
             }
         }
