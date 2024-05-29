@@ -91,15 +91,14 @@ class ChatClient {
     this.iv = crypto.randomBytes(16);
 
     this.client.on('data', (data) => {
-      const tmp = Buffer.from(data, 'base64').toString('utf-8');
-      const decryptedMessage = Buffer.from(tmp, 'base64').toString('utf-8');
       try {
-          const message = decryptedMessage.toString().trim();
-          const [command, ...params] = message.split(' ');
-    
-          console.log('comando', command)
-          this.front[command](params);
+        const message = data.toString().trim();
+        const [command, ...params] = message.split(' ');
+        
+        this.front[command](params);
+        console.log('comando', command)
       } catch (err) { 
+            const tmp = Buffer.from(data, 'base64').toString('utf-8');
             const decryptedHex = Buffer.from(tmp, 'base64').toString('utf-8')
             const message = this.front.decryptAES(decryptedHex);
             const [command, ...params] = message.toString().trim().split(' ');
@@ -178,8 +177,9 @@ class ChatClient {
   }
 
   handshakeMessage(message) {
-    const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
-    this.client.write(`${base64EncodedMessage}\n`);
+    // const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
+    // this.client.write(`${base64EncodedMessage}\n`);
+    this.client.write(`${message}\n`);
   }
 
   sendMessage(message) {

@@ -160,8 +160,9 @@ class CommandHandler {
     }
 
     handshakeMessage(message) {
-        const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
-        this.socket.write(base64EncodedMessage);
+        // const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
+        // this.socket.write(base64EncodedMessage);
+        this.socket.write(message);
     }
 
     sendMessage(message, target = this) {
@@ -195,18 +196,14 @@ const server = net.createServer((socket) => {
     const commandHandler = new CommandHandler(socket);
 
     socket.on('data', (data) => {
-        // console.log('base64', data);
-        const tmp = Buffer.from(data, 'base64').toString('utf-8');
-        // console.log("tmp", tmp)
-        const decryptedMessage = Buffer.from(tmp, 'base64').toString('utf-8');
-        // console.log("decode", decryptedMessage)
         try {
-            const message = decryptedMessage.toString().trim();
+            const message = data.toString().trim();
             const [command, ...params] = message.split(' ');
-    
-            console.log('comando', command)
+            
             commandHandler[command](params);
+            console.log('comando', command)
         } catch (err) { 
+            const tmp = Buffer.from(data, 'base64').toString('utf-8');
             const decryptedHex = Buffer.from(tmp, 'base64').toString('utf-8')
             console.log(decryptedHex)
             const message = commandHandler.decryptAES(decryptedHex);
