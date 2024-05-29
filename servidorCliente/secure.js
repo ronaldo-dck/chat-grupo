@@ -7,7 +7,7 @@ const generateAESKey = (length) => {
 // const { generateKeyPairSync, publicEncrypt, randomBytes, createCipheriv, createDecipheriv } = require('crypto');
 const encryptWithRSAPublicKey = (publicKey, data) => {
   const buffer = Buffer.from(data, "utf8");
-  const encrypted = cripto.publicEncrypt(publicKey, buffer);
+  const encrypted = crypto.publicEncrypt(publicKey, buffer);
   return encrypted.toString("base64");
 };
 

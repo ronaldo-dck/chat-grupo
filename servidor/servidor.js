@@ -17,31 +17,39 @@ const { publicKey, privateKey } = crypto.generateKeyPairSync('rsa', {
 });
 
 
+/**
+ * 
+ * 
+ * 
+ */
+
+
 class CommandHandler {
     constructor(socket) {
         this.socket = socket;
         this.username = null;
         this.symetricKey = null;
+        this.iv = crypto.randomBytes(16);
     }
 
     REGISTRO(params) {
         const username = params[0];
         if (clients[username]) {
-            this.sendMessage('ERRO Usuario_ja_existe\n');
+            this.handshakeMessage('ERRO Usuario_ja_existe\n');
         } else {
             this.username = username;
-            clients[username] = this.socket;
-            this.sendMessage('REGISTRO_OK\n');
+            clients[username] = this;
+            this.handshakeMessage('REGISTRO_OK\n');
         }
     }
 
-    AUTENTICACAO(params) {
-        this.sendMessage(`CHAVE_PUBLICA ${''}`)
+    AUTENTICACAO() {
+        this.handshakeMessage(`CHAVE_PUBLICA ${publicKey}\n`)
     }
 
     CHAVE_SIMETRICA(params) {
-        clients[this.username].AESKey = crypto.privateDecrypt(params[0]);
-        console.log(crypto.privateDecrypt(params[0]))
+        const data = Buffer.from(params[0], "base64");
+        this.symetricKey = crypto.privateDecrypt(privateKey, data);
     }
 
     CRIAR_SALA(params) {
@@ -84,7 +92,7 @@ class CommandHandler {
                 this.sendMessage(`ENTRAR_SALA_OK ${room.clients.join(' ')}\n`);
                 room.clients.forEach(clientName => {
                     if (clientName !== this.username) {
-                        clients[clientName].write(`ENTROU ${roomToJoin} ${this.username}\n`);
+                        this.sendMessage(`ENTROU ${roomToJoin} ${this.username}\n`, clients[clientName]);
                     }
                 });
             }
@@ -99,7 +107,7 @@ class CommandHandler {
         if (rooms[targetRoom]) {
             rooms[targetRoom].clients.forEach(clientName => {
                 if (clientName !== this.username) {
-                    clients[clientName].write(`MENSAGEM ${this.username} ${fullMessage}\n`);
+                    this.sendMessage(`MENSAGEM ${this.username} ${fullMessage}\n`, clients[clientName]);
                 }
             });
         } else {
@@ -110,11 +118,11 @@ class CommandHandler {
     BANIR_USUARIO(params) {
         const [targetRoom, targetUser] = params;
         if (rooms[targetRoom] && rooms[targetRoom].clients.includes(targetUser)) {
-            clients[targetUser].write(`BANIDO_DA_SALA ${targetRoom}\n`);
+            this.sendMessage(`BANIDO_DA_SALA ${targetRoom}\n`, clients[targetUser]);
             rooms[targetRoom].clients = rooms[targetRoom].clients.filter(clientName => clientName !== targetUser);
             rooms[targetRoom].banidos.push(targetUser);
             rooms[targetRoom].clients.forEach(clientName => {
-                clients[clientName].write(`SAIU ${targetRoom} ${targetUser}\n`);
+                this.sendMessage(`SAIU ${targetRoom} ${targetUser}\n`, clients[clientName]);
             });
             setTimeout(() => {
                 this.sendMessage(`BANIR_USUARIO_OK\n`);
@@ -130,7 +138,7 @@ class CommandHandler {
             rooms[roomToLeave].clients = rooms[roomToLeave].clients.filter(clientName => clientName !== this.username);
             this.sendMessage('SAIR_SALA_OK\n');
             rooms[roomToLeave].clients.forEach(clientName => {
-                clients[clientName].write(`SAIU ${roomToLeave} ${this.username}\n`);
+                this.sendMessage(`SAIU ${roomToLeave} ${this.username}\n`, clients[clientName]);
             });
         } else {
             this.sendMessage('ERRO Sala nao existe\n');
@@ -142,7 +150,7 @@ class CommandHandler {
         if (rooms[roomToClose]) {
             rooms[roomToClose].clients = rooms[roomToClose].clients.filter(clientName => clientName !== this.username);
             rooms[roomToClose].clients.forEach(clientName => {
-                clients[clientName].write(`SALA_FECHADA ${roomToClose}\n`);
+                this.sendMessage(`SALA_FECHADA ${roomToClose}\n`, clients[clientName]);
             });
             delete rooms[roomToClose];
             this.sendMessage('FECHAR_SALA_OK\n');
@@ -151,8 +159,35 @@ class CommandHandler {
         }
     }
 
-    sendMessage(message) {
-        this.socket.write(message);
+    handshakeMessage(message) {
+        const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
+        this.socket.write(base64EncodedMessage);
+    }
+
+    sendMessage(message, target = this) {
+        const encryptedMessage = target.encryptAES(message);
+        const base64EncodedMessage = Buffer.from(encryptedMessage, 'utf-8').toString('base64');
+        target.socket.write(base64EncodedMessage);
+    }
+
+
+
+    encryptAES(message) {
+        const cipher = crypto.createCipheriv('aes-256-cbc', this.symetricKey, this.iv);
+        let encrypted = cipher.update(message, 'utf-8', 'hex');
+        encrypted += cipher.final('hex');
+        // Concatenar IV com a mensagem criptografada para usá-lo na descriptografia
+        return this.iv.toString('hex') + ':' + encrypted;
+    }
+
+    decryptAES(encryptedMessage) {
+        const parts = encryptedMessage.split(':');
+        const iv = Buffer.from(parts.shift(), 'hex')
+        const encryptedText = parts.join(':');
+        const decipher = crypto.createDecipheriv('aes-256-cbc', this.symetricKey, iv);
+        let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
+        decrypted += decipher.final('utf-8');
+        return decrypted;
     }
 }
 
@@ -160,14 +195,25 @@ const server = net.createServer((socket) => {
     const commandHandler = new CommandHandler(socket);
 
     socket.on('data', (data) => {
-        const message = data.toString().trim();
-        const [command, ...params] = message.split(' ');
-
-        if (commandHandler[command]) {
+        // console.log('base64', data);
+        const tmp = Buffer.from(data, 'base64').toString('utf-8');
+        // console.log("tmp", tmp)
+        const decryptedMessage = Buffer.from(tmp, 'base64').toString('utf-8');
+        // console.log("decode", decryptedMessage)
+        try {
+            const message = decryptedMessage.toString().trim();
+            const [command, ...params] = message.split(' ');
+    
             console.log('comando', command)
             commandHandler[command](params);
-        } else {
-            socket.write(`ERRO Comando desconhecido D: : ${command}\n`);
+        } catch (err) { 
+            const decryptedHex = Buffer.from(tmp, 'base64').toString('utf-8')
+            console.log(decryptedHex)
+            const message = commandHandler.decryptAES(decryptedHex);
+            const [command, ...params] = message.toString().trim().split(' ');
+    
+            console.log('comandoAES', command)
+            commandHandler[command](params);
         }
     });
 
@@ -188,10 +234,11 @@ const server = net.createServer((socket) => {
                     if (room.admin === commandHandler.username) {
                         commandHandler.FECHAR_SALA([roomName]);
                     }
-                    room.clients = room.clients.filter(clientName => clientName !== commandHandler.username);
-                    room.clients.forEach(clientName => {
-                        clients[clientName].write(`SAIU ${roomName} ${commandHandler.username}\n`);
-                    });
+                    commandHandler.SAIR_SALA([roomName]);
+                    // room.clients = room.clients.filter(clientName => clientName !== commandHandler.username);
+                    // room.clients.forEach(clientName => {
+                    //     this.sendMessage(`SAIU ${roomName} ${commandHandler.username}\n`, clients[clientName]););
+                    // });
                 }
             }
         }

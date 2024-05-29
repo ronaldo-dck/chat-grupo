@@ -87,17 +87,26 @@ class ChatClient {
     this.front = new CommandHandler(socket, username)
     this.username = username;
     this.secureKey = null
-    this.symetricKey = null
+    this.AESKey = null
+    this.iv = crypto.randomBytes(16);
 
     this.client.on('data', (data) => {
-      const message = data.toString().trim();
-
-      const [command, ...params] = message.split(' ');
-      if (this.front[command]) {
-        this.front[command](params);
-      } else {
-        socket.emit('error', `ERRO Comando desconhecido: ${command}\n`);
-      }
+      const tmp = Buffer.from(data, 'base64').toString('utf-8');
+      const decryptedMessage = Buffer.from(tmp, 'base64').toString('utf-8');
+      try {
+          const message = decryptedMessage.toString().trim();
+          const [command, ...params] = message.split(' ');
+    
+          console.log('comando', command)
+          this.front[command](params);
+      } catch (err) { 
+            const decryptedHex = Buffer.from(tmp, 'base64').toString('utf-8')
+            const message = this.front.decryptAES(decryptedHex);
+            const [command, ...params] = message.toString().trim().split(' ');
+    
+            console.log('comandoAES', command)
+            this.front[command](params);
+        }
     });
 
     this.client.on('close', () => {
@@ -114,21 +123,24 @@ class ChatClient {
 
   async connect(host = '127.0.0.1', port = 9999) {
     this.client.connect(port, host, () => {
-      // console.log(`Conectado ao servidor [${this.username}]`);
+      console.log(`Conectado ao servidor [${this.username}]`);
       this.register(this.username);
     });
   }
 
   register(username) {
-    this.sendMessage(`REGISTRO ${username}`);
+    this.handshakeMessage(`REGISTRO ${username}`);
   }
 
   authenticate(username) {
-    this.sendMessage(`AUTENTICACAO ${username}`);
+    this.handshakeMessage(`AUTENTICACAO ${username}`);
   }
 
   sendSymetricKey(data) {
-    this.sendMessage(`CHAVE_SIMETRICA ${data}`);
+    // console.log(data)
+    // console.log(this.secureKey);
+    // data = crypto.publicEncrypt(this.secureKey, data);
+    this.handshakeMessage(`CHAVE_SIMETRICA ${data}`);
   }
 
   createRoom(sala) {
@@ -165,8 +177,30 @@ class ChatClient {
     this.sendMessage(`FECHAR_SALA ${roomName}`);
   }
 
+  handshakeMessage(message) {
+    const base64EncodedMessage = Buffer.from(message, 'utf-8').toString('base64');
+    this.client.write(`${base64EncodedMessage}\n`);
+  }
+
   sendMessage(message) {
-    this.client.write(`${message}\n`);
+    const encryptedMessage = this.encryptAES(message);
+    const base64EncodedMessage = Buffer.from(encryptedMessage, 'utf-8').toString('base64');
+    this.client.write(`${base64EncodedMessage}\n`);
+  }
+
+  // encryptAES(message) {
+  //   const cipher = crypto.createCipheriv('aes-256-cbc', this.AESKey, Buffer.alloc(16));
+  //   let encrypted = cipher.update(message, 'utf-8', 'hex');
+  //   encrypted += cipher.final('hex');
+  //   return encrypted;
+  // }
+
+  encryptAES(message) {
+    const cipher = crypto.createCipheriv('aes-256-cbc', this.AESKey, this.iv);
+    let encrypted = cipher.update(message, 'utf-8', 'hex');
+    encrypted += cipher.final('hex');
+    // Concatenar IV com a mensagem criptografada para usá-lo na descriptografia
+    return this.iv.toString('hex') + ':' + encrypted;
   }
 
   close() {
@@ -181,15 +215,31 @@ class CommandHandler {
     this.username = username;
   }
 
-  REGISTRO_OK(params) {
+  // decryptAES(encryptedMessage) {
+  //   const decipher = crypto.createDecipheriv('aes-256-cbc', this.AESKey, Buffer.alloc(16));
+  //   let decrypted = decipher.update(encryptedMessage, 'hex', 'utf-8');
+  //   decrypted += decipher.final('utf-8');
+  //   return decrypted;
+  // }
+
+  decryptAES(encryptedMessage) {
+    const parts = encryptedMessage.split(':');
+    const iv = Buffer.from(parts.shift(), 'hex')
+    const encryptedText = parts.join(':');
+    const decipher = crypto.createDecipheriv('aes-256-cbc', clients[this.socket.id].AESKey, iv);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
+    decrypted += decipher.final('utf-8');
+    return decrypted;
+  }
+
+  REGISTRO_OK() {
     this.socket.emit('connected', this.username);
   }
 
   CHAVE_PUBLICA(params) {
-    // this.socket.emit('public-key', params);
-    clients[this.socket.id].secureKey = params[0]
-    cleients[this.socket.id].AESKey = generateAESKey() 
-    data = encryptWithRSAPublicKey(params[0])
+    clients[this.socket.id].secureKey = params.join(' ')
+    clients[this.socket.id].AESKey = generateAESKey(32) 
+    const data = encryptWithRSAPublicKey(clients[this.socket.id].secureKey, clients[this.socket.id].AESKey)
     clients[this.socket.id].sendSymetricKey(data)
   }
 
