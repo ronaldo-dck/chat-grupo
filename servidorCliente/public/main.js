@@ -2,6 +2,7 @@ const socket = io()
 
 let rooms = []
 let username
+let enterAttempt = { nome: null, clientes: [], banidos: [] }
 let currentRoom = { nome: null, clientes: [], banidos: [] }
 let roomEvents = []
 
@@ -83,7 +84,8 @@ const renderClients = (sala => {
 function entrarSala(sala, pswd) {
   if (currentRoom.nome == null) {
     socket.emit('entrarSala', { sala, pswd })
-    currentRoom = { nome: sala, clientes: [], banidos: [] }
+    enterAttempt = { nome: sala, clientes: [], banidos: [] }
+    // currentRoom = { nome: sala, clientes: [], banidos: [] }
   } else {
     alert('Saia de sua sala atual e e tente novamente')
   }
@@ -189,6 +191,7 @@ socket.on('joined-room', (data) => {
   document.getElementById('sairButton').style.display = 'block'
   roomEvents = ['SALA INGRESSADA']
   renderChat()
+  currentRoom = enterAttempt
 })
 
 socket.on('room-joined', (data) => {
@@ -232,7 +235,9 @@ socket.on('closed-room', (data) => {
   document.getElementById('sairButton').style.display = 'none'
   document.getElementById('adminPanel').style.display = 'none'
   getSalas()
+  console.log('fechou');
   currentRoom = { nome: null, clientes: [], banidos: [] }
+  console.log(currentRoom);
 })
 
 socket.on('room-closed', (data) => {
